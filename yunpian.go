@@ -193,6 +193,36 @@ type SMSTplSendInfo struct {
 	Uid       string
 }
 
+type VoiceSendInfo struct {
+	Mobile       string
+	Code         string
+	Callback_URL string
+	Display_Num  string
+}
+type VoiceSendResult struct {
+	Count int
+	Fee   int
+	Sid   string
+}
+type VoiceSend struct {
+	BaseStruct
+	Result VoiceSendResult
+}
+
+type VoiceStatu struct {
+	Sid               string
+	Uid               string
+	User_Receive_Time string `json:"user_receive_time"`
+	Duration          int
+	Error_Msg         string `json:"error_msg"`
+	Mobile            string
+	Report_Status     string `json:"report_status"`
+}
+type VoicePullStatus struct {
+	BaseStruct
+	Voice_Status []VoiceStatu `json:"voice_status"`
+}
+
 //--------------------------------------------------------------
 //                          函数实现
 //--------------------------------------------------------------
@@ -445,22 +475,6 @@ func Sms_MultiSend(info SMSSendInfo) ([]SMSSend, error) {
 
 }
 
-type VoiceSendInfo struct {
-	Mobile       string
-	Code         string
-	Callback_URL string
-	Display_Num  string
-}
-type VoiceSendResult struct {
-	Count int
-	Fee   int
-	Sid   string
-}
-type VoiceSend struct {
-	BaseStruct
-	Result VoiceSendResult
-}
-
 //4.1 发送语音验证码
 func Voice_Send(info VoiceSendInfo) (VoiceSendResult, error) {
 	req := httplib.Post(geturl(URL_VOICE_SEND))
@@ -475,20 +489,6 @@ func Voice_Send(info VoiceSendInfo) (VoiceSendResult, error) {
 		return voicesend.Result, nil
 	}
 	return VoiceSendResult{}, errors.New(voicesend.Detail)
-}
-
-type VoiceStatu struct {
-	Sid               string
-	Uid               string
-	User_Receive_Time string `json:"user_receive_time"`
-	Duration          int
-	Error_Msg         string `json:"error_msg"`
-	Mobile            string
-	Report_Status     string `json:"report_status"`
-}
-type VoicePullStatus struct {
-	BaseStruct
-	Voice_Status []VoiceStatu `json:"voice_status"`
 }
 
 //获取状态报告
