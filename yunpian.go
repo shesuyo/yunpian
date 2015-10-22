@@ -17,7 +17,6 @@ var HOST = "yunpian.com"
 var PORT = 80
 var VERSION = "v1"
 var FORMAT = "json"
-var APIKEY = ""
 
 //1.1 查看账户信息
 var URL_USER_GET = "user/get"
@@ -75,6 +74,10 @@ var URL_VOICE_PULLSTATUS = "voice/pull_status"
 //							结构体
 //--------------------------------------------------------------
 
+type YunpianAPI struct {
+	APIKey string
+}
+
 type BaseStruct struct {
 	Code   int
 	Msg    string
@@ -99,7 +102,7 @@ type UserDetail struct {
 	EmergencyMobile  string `json:"emergency_mobile"`
 }
 
-type UserModify struct {
+type UserSetInfo struct {
 	AlarmBalance     int
 	EmergencyContact string
 	EmergencyMobile  string
@@ -109,10 +112,12 @@ type Tpls struct {
 	BaseStruct
 	Templates []Template `json:"template"`
 }
+
 type Tpl struct {
 	BaseStruct
 	Template Template `json:"template"`
 }
+
 type Template struct {
 	Tpl_id       int    `json:"tpl_id"`
 	Tpl_Content  string `json:"tpl_content"`
@@ -147,10 +152,12 @@ type SMSStatu struct {
 	Mobile            string
 	Report_Status     string `json:"report_status"`
 }
+
 type SMSPullStatus struct {
 	BaseStruct
 	SMSStatus []SMSStatu `json:"sms_status"`
 }
+
 type SMSReply struct {
 	Mobile      string
 	Reply_Time  string `json:"reply_time"`
@@ -158,6 +165,7 @@ type SMSReply struct {
 	Extend      string
 	Base_Extend string `json:"base_extend"`
 }
+
 type SMSPullReply struct {
 	BaseStruct
 	SMSReplys []SMSReply `json:"sms_reply"`
@@ -172,13 +180,16 @@ type SMSGetReplyInfo struct {
 	Return_fields string
 	Sort_Fields   string
 }
+
 type SMSGetReply struct {
 	BaseStruct
 	SMS_Replys []SMSReply `json:"sms_reply"`
 }
+
 type SMSGetBlackWordResult struct {
 	Black_Word string `json:"black_word"`
 }
+
 type SMSGetBlackWord struct {
 	BaseStruct
 	Result SMSGetBlackWordResult
@@ -199,11 +210,13 @@ type VoiceSendInfo struct {
 	Callback_URL string
 	Display_Num  string
 }
+
 type VoiceSendResult struct {
 	Count int
 	Fee   int
 	Sid   string
 }
+
 type VoiceSend struct {
 	BaseStruct
 	Result VoiceSendResult
@@ -218,6 +231,7 @@ type VoiceStatu struct {
 	Mobile            string
 	Report_Status     string `json:"report_status"`
 }
+
 type VoicePullStatus struct {
 	BaseStruct
 	Voice_Status []VoiceStatu `json:"voice_status"`
@@ -227,19 +241,20 @@ type VoicePullStatus struct {
 //                          函数实现
 //--------------------------------------------------------------
 
+//拼接请求URL
 func geturl(url string) string {
 	return fmt.Sprintf("%s%s:%d/%s/%s.%s", SCHEMES, HOST, PORT, VERSION, url, FORMAT)
 }
 
-//注册APIKEY（此步骤必须）
-func RegisterKey(apikey string) {
-	APIKEY = apikey
+//创建新的云片API
+func NewYunpianAPI(apikey string) *YunpianAPI {
+	return &YunpianAPI{apikey}
 }
 
 //1.1 查账户信息
-func UserGet() (User, error) {
+func (this *YunpianAPI) UserGet() (User, error) {
 	req := httplib.Post(geturl(URL_USER_GET))
-	req.Param("apikey", APIKEY)
+	req.Param("apikey", this.APIKey)
 	user := User{}
 	req.ToJson(&user)
 	if user.Code == 0 {
@@ -249,8 +264,9 @@ func UserGet() (User, error) {
 }
 
 //1.2 修改账户信息
-func UserSet(user UserModify) error {
+func (this *YunpianAPI) UserSet(user UserSetInfo) error {
 	req := httplib.Post(geturl(URL_USER_SET))
+	req.Param("apikey", this.APIKey)
 	if user.AlarmBalance != 0 {
 		req.Param("alarm_balance", strconv.Itoa(user.AlarmBalance))
 	}
@@ -269,9 +285,9 @@ func UserSet(user UserModify) error {
 }
 
 //2.1 取默认模板
-func Tpl_GetDefault(id int) (Template, error) {
+func (this *YunpianAPI) TplGetDefault(id int) (Template, error) {
 	req := httplib.Post(geturl(URL_TPL_GET))
-	req.Param("apikey", APIKEY)
+	req.Param("apikey", this.APIKey)
 	req.Param("tpl_id", strconv.Itoa(id))
 	tpl := Tpl{}
 	req.ToJson(&tpl)
@@ -280,9 +296,9 @@ func Tpl_GetDefault(id int) (Template, error) {
 	}
 	return Template{}, errors.New(tpl.Detail)
 }
-func Tpl_GetDefaultAll() ([]Template, error) {
+func (this *YunpianAPI) TplGetDefaultAll() ([]Template, error) {
 	req := httplib.Post(geturl(URL_TPL_GET))
-	req.Param("apikey", APIKEY)
+	req.Param("apikey", this.APIKey)
 	tpl := Tpls{}
 	req.ToJson(&tpl)
 	if tpl.Code == 0 {
@@ -292,9 +308,9 @@ func Tpl_GetDefaultAll() ([]Template, error) {
 }
 
 //2.2 添加模板
-func Tpl_Add(tpl_content string, notify_type int) (Template, error) {
+func (this *YunpianAPI) TplAdd(tpl_content string, notify_type int) (Template, error) {
 	req := httplib.Post(geturl(URL_TPL_ADD))
-	req.Param("apikey", APIKEY)
+	req.Param("apikey", this.APIKey)
 	req.Param("tpl_content", tpl_content)
 	req.Param("notify_type", strconv.Itoa(notify_type))
 	tpl := Tpl{}
@@ -306,9 +322,9 @@ func Tpl_Add(tpl_content string, notify_type int) (Template, error) {
 }
 
 //2.3 取模板
-func Tpl_Get(tpl_id int) (Template, error) {
+func (this *YunpianAPI) TplGet(tpl_id int) (Template, error) {
 	req := httplib.Post(geturl(URL_TPL_GET))
-	req.Param("apikey", APIKEY)
+	req.Param("apikey", this.APIKey)
 	req.Param("tpl_id", strconv.Itoa(tpl_id))
 	tpl := Tpl{}
 	req.ToJson(&tpl)
@@ -317,9 +333,9 @@ func Tpl_Get(tpl_id int) (Template, error) {
 	}
 	return Template{}, errors.New(tpl.Detail)
 }
-func Tpl_GetALL() ([]Template, error) {
+func (this *YunpianAPI) TplGetALL() ([]Template, error) {
 	req := httplib.Post(geturl(URL_TPL_GET))
-	req.Param("apikey", APIKEY)
+	req.Param("apikey", this.APIKey)
 	tpl := Tpls{}
 	req.ToJson(&tpl)
 	if tpl.Code == 0 {
@@ -329,9 +345,9 @@ func Tpl_GetALL() ([]Template, error) {
 }
 
 //2.4 修改模板
-func Tpl_Update(tpl_id int, tpl_content string) (Template, error) {
+func (this *YunpianAPI) TplUpdate(tpl_id int, tpl_content string) (Template, error) {
 	req := httplib.Post(geturl(URL_TPL_UPDATE))
-	req.Param("apikey", APIKEY)
+	req.Param("apikey", this.APIKey)
 	req.Param("tpl_id", strconv.Itoa(tpl_id))
 	req.Param("tpl_content", tpl_content)
 	tpl := Tpl{}
@@ -343,9 +359,9 @@ func Tpl_Update(tpl_id int, tpl_content string) (Template, error) {
 }
 
 //2.5 删除模板
-func Tpl_Del(tpl_id int) error {
+func (this *YunpianAPI) TplDel(tpl_id int) error {
 	req := httplib.Post(geturl(URL_TPL_DEL))
-	req.Param("apikey", APIKEY)
+	req.Param("apikey", this.APIKey)
 	req.Param("tpl_id", strconv.Itoa(tpl_id))
 	baseStruct := BaseStruct{}
 	req.ToJson(&baseStruct)
@@ -356,9 +372,9 @@ func Tpl_Del(tpl_id int) error {
 }
 
 //3.1 智能匹配模板发送
-func Sms_Send(info SMSSendInfo) (SMSResult, error) {
+func (this *YunpianAPI) SmsSend(info SMSSendInfo) (SMSResult, error) {
 	req := httplib.Post(geturl(URL_SMS_SEND))
-	req.Param("apikey", APIKEY)
+	req.Param("apikey", this.APIKey)
 	req.Param("mobile", info.Mobile)
 	req.Param("text", info.Text)
 	if info.Extend != "" {
@@ -379,9 +395,9 @@ func Sms_Send(info SMSSendInfo) (SMSResult, error) {
 }
 
 //3.2 获取状态报告
-func Sms_PullStatus(page_size ...int) ([]SMSStatu, error) {
+func (this *YunpianAPI) SmsPullStatus(page_size ...int) ([]SMSStatu, error) {
 	req := httplib.Post(geturl(URL_SMS_PULLSTATUS))
-	req.Param("apikey", APIKEY)
+	req.Param("apikey", this.APIKey)
 	if len(page_size) > 0 {
 		req.Param("page_size", strconv.Itoa(page_size[0]))
 	}
@@ -394,9 +410,9 @@ func Sms_PullStatus(page_size ...int) ([]SMSStatu, error) {
 }
 
 //3.4 获取回复短信
-func Sms_PullReply(page_size ...int) ([]SMSReply, error) {
+func (this *YunpianAPI) SmsPullReply(page_size ...int) ([]SMSReply, error) {
 	req := httplib.Post(geturl(URL_SMS_PULLREPLY))
-	req.Param("apikey", APIKEY)
+	req.Param("apikey", this.APIKey)
 	if len(page_size) > 0 {
 		req.Param("page_size", strconv.Itoa(page_size[0]))
 	}
@@ -409,9 +425,9 @@ func Sms_PullReply(page_size ...int) ([]SMSReply, error) {
 }
 
 //3.6 查看回复信息
-func Sms_GetReply(info SMSGetReplyInfo) ([]SMSReply, error) {
+func (this *YunpianAPI) SmsGetReply(info SMSGetReplyInfo) ([]SMSReply, error) {
 	req := httplib.Post(geturl(URL_SMS_GETREPLY))
-	req.Param("apikey", APIKEY)
+	req.Param("apikey", this.APIKey)
 	req.Param("start_time", info.Start_Time)
 	req.Param("end_time", info.End_Time)
 	req.Param("page_num", strconv.Itoa(info.Page_Num))
@@ -428,9 +444,9 @@ func Sms_GetReply(info SMSGetReplyInfo) ([]SMSReply, error) {
 }
 
 //3.7 查看屏蔽词
-func Sms_GetBlackWord(text string) (string, error) {
+func (this *YunpianAPI) SmsGetBlackWord(text string) (string, error) {
 	req := httplib.Post(geturl(URL_SMS_GETBLACKWORD))
-	req.Param("apikey", APIKEY)
+	req.Param("apikey", this.APIKey)
 	req.Param("text", text)
 	smsgetblackword := SMSGetBlackWord{}
 	req.ToJson(&smsgetblackword)
@@ -441,9 +457,9 @@ func Sms_GetBlackWord(text string) (string, error) {
 }
 
 //3.8 指定模板发送
-func Sms_TplSend(info SMSTplSendInfo) (SMSResult, error) {
-	req := httplib.Post(URL_SMS_TPLSEND)
-	req.Param("apikey", APIKEY)
+func (this *YunpianAPI) SmsTplSend(info SMSTplSendInfo) (SMSResult, error) {
+	req := httplib.Post(geturl(URL_SMS_TPLSEND))
+	req.Param("apikey", this.APIKey)
 	req.Param("mobile", info.Mobile)
 	req.Param("tpl_id", strconv.Itoa(info.Tpl_ID))
 	req.Param("tpl_value", info.Tpl_Value)
@@ -458,9 +474,9 @@ func Sms_TplSend(info SMSTplSendInfo) (SMSResult, error) {
 }
 
 //3.9 批量个性化发送
-func Sms_MultiSend(info SMSSendInfo) ([]SMSSend, error) {
+func (this *YunpianAPI) SmsMultiSend(info SMSSendInfo) ([]SMSSend, error) {
 	req := httplib.Post(geturl(URL_SMS_MULTISEND))
-	req.Param("apikey", APIKEY)
+	req.Param("apikey", this.APIKey)
 	req.Param("mobile", info.Mobile)
 	req.Param("text", info.Text)
 	req.Param("extend", info.Extend)
@@ -476,9 +492,9 @@ func Sms_MultiSend(info SMSSendInfo) ([]SMSSend, error) {
 }
 
 //4.1 发送语音验证码
-func Voice_Send(info VoiceSendInfo) (VoiceSendResult, error) {
+func (this *YunpianAPI) VoiceSend(info VoiceSendInfo) (VoiceSendResult, error) {
 	req := httplib.Post(geturl(URL_VOICE_SEND))
-	req.Param("apikey", APIKEY)
+	req.Param("apikey", this.APIKey)
 	req.Param("mobile", info.Mobile)
 	req.Param("code", info.Code)
 	req.Param("callback_url", info.Callback_URL)
@@ -492,9 +508,9 @@ func Voice_Send(info VoiceSendInfo) (VoiceSendResult, error) {
 }
 
 //获取状态报告
-func Voice_PullStatus(page_size ...int) ([]VoiceStatu, error) {
+func (this *YunpianAPI) VoicePullStatus(page_size ...int) ([]VoiceStatu, error) {
 	req := httplib.Post(geturl(URL_VOICE_PULLSTATUS))
-	req.Param("apikey", APIKEY)
+	req.Param("apikey", this.APIKey)
 	if len(page_size) > 0 {
 		req.Param("page_size", strconv.Itoa(page_size[0]))
 	}
